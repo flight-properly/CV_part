@@ -1,52 +1,77 @@
 import cv2
-import numpy as np
+import mediapipe as mp
+import time
 
-lower = np.array([0,50,186], dtype=np.uint8)
-upper = np.array([255,255,255], dtype=np.uint8)
+#define
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_hands = mp.solutions.hands
 
 cap = cv2.VideoCapture(0)
 
-kernel = np.zeros((3,3),np.uint8)
-tmp=[]
-while (True) :
-    tmp, frame = cap.read()
+swt=0
+init_width=0
+init_height_right=0
+init_height_left=0
+
+with mp_hands.Hands(
+
+    model_complexity=0,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.7) as hands:
+
+  while cap.isOpened():
+    success, image = cap.read()
+    if not success:
+      print("Camera failure")
+      continue
+
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = hands.process(image)
+
+    image_height, image_width, _ = image.shape
     
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
-    mask = cv2.inRange(hsv, lower, upper)
-    mask = cv2.dilate(mask, kernel,iterations = 4)
-    mask = cv2.GaussianBlur(mask, (5,5), 100)
+    try:
+      if len(results.multi_hand_landmarks)==2:
 
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #list import
+        if results.multi_hand_landmarks[0].landmark[9].x * image_width < results.multi_hand_landmarks[1].landmark[9].x * image_width :
+          right_hand=results.multi_hand_landmarks[0]
+          left_hand=results.multi_hand_landmarks[1]
+        else :
+          right_hand=results.multi_hand_landmarks[1]
+          left_hand=results.multi_hand_landmarks[0]
 
-    if len(contours) < 1 or len(contours) == 0:
-        continue
-    else:
-        pass
+        #define
+        right_5_y = right_hand.landmark[5].y * image_height
+        left_5_y = left_hand.landmark[5].y * image_height
 
-    contours = max(contours, key = lambda x: cv2.contourArea(x))
+        right_17_y = right_hand.landmark[17].y * image_height
+        left_17_y = left_hand.landmark[17].y * image_height
+        
+        #save initial width 
+        if (swt==0): 
+          init_width=((right_17_y - right_5_y) + (left_17_y - left_5_y))/2
+          init_height_right=right_5_y
+          init_height_left=left_5_y
+          swt=1
 
-    epsilon = 0.0005*cv2.arcLength(contours,True)
-    appctr = cv2.approxPolyDP(contours,epsilon,True)
+        #pitch 
+        depth_avg = round(((((right_17_y - right_5_y) + (left_17_y - left_5_y))/2)/init_width-1)*-2,8)
+        if (depth_avg>1) : depth_avg=1.0
+        elif (depth_avg<-1) : depth_avg=-1.0
 
-    hull = cv2.convexHull(contours)
+        #roll&yaw
+        if (left_5_y-right_5_y > 20.0 or left_5_y-right_5_y < -20.0):
+          real_height = (left_5_y-right_5_y / 400 - 200) / -200
+        else: real_height=0.0
+        if (real_height>1) : real_height=1.0
+        elif (real_height<-1) : real_height=-1.0
 
-    hull = cv2.convexHull(appctr, returnPoints=False)
-    defects = cv2.convexityDefects(appctr, hull)
-
-    for i in range(defects.shape[0]):
-        s, e, _, _ = defects[i,0]
-        start = tuple(appctr[s][0])
-        end = tuple(appctr[e][0])
-
-        cv2.line(frame,start, end, [20,255,255], 2)
-
-    cv2.imshow('mask',mask)
-    cv2.imshow('frame',frame)
-
-    k = cv2.waitKey(5) & 0xFF
-    if k == 27:
-        break
-    
-cv2.destroyAllWindows()
-cap.release()    
+        #output
+        print(depth_avg, real_height)
+        
+    except:
+      print()
