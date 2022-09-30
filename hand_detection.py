@@ -10,6 +10,7 @@ mp_hands = mp.solutions.hands
 cap = cv2.VideoCapture(0)
 
 swt=0
+throttle=1
 init_width=0
 init_height_right=0
 init_height_left=0
@@ -50,7 +51,12 @@ with mp_hands.Hands(
 
         right_17_y = right_hand.landmark[17].y * image_height
         left_17_y = left_hand.landmark[17].y * image_height
-        
+
+        right_4_y = right_hand.landmark[4].y * image_width
+        left_4_y = left_hand.landmark[4].y * image_width
+
+        right_9_y = right_hand.landmark[9].y * image_width
+        left_9_y = left_hand.landmark[9].y * image_width
         #save initial width 
         if (swt==0): 
           init_width=((right_17_y - right_5_y) + (left_17_y - left_5_y))/2
@@ -62,16 +68,23 @@ with mp_hands.Hands(
         depth_avg = round(((((right_17_y - right_5_y) + (left_17_y - left_5_y))/2)/init_width-1)*-2,8)
         if (depth_avg>1) : depth_avg=1.0
         elif (depth_avg<-1) : depth_avg=-1.0
-
+      
         #roll&yaw
         if (left_5_y-right_5_y > 20.0 or left_5_y-right_5_y < -20.0):
           real_height = (left_5_y-right_5_y / 400 - 200) / -200
         else: real_height=0.0
         if (real_height>1) : real_height=1.0
         elif (real_height<-1) : real_height=-1.0
+        
+        #throttle
+        if (depth_avg<0.5 and depth_avg>-0.5 and right_4_y > right_9_y-100 and left_4_y > left_9_y-100):
+            throttle = 0
+        else:
+            throttle = 1 
 
         #output
-        print(depth_avg, real_height)
+        print(depth_avg, real_height,throttle)
+        
         
     except:
       print()
