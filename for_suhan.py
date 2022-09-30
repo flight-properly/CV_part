@@ -83,10 +83,25 @@ with mp_hands.Hands(
             throttle = 0 
 
         #output
-        if (real_height > 0.3): print("right")
-        elif (real_height < -0.3): print("left")
         print(depth_avg, real_height,throttle)
         
+        #display result
+        if results.multi_hand_landmarks:
+          for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                image,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style())
+        
+        
+        cv2.imshow('MediaPipe Hands', cv2.flip(image, 1))
+        if cv2.waitKey(5) & 0xFF == 27:
+          break
         
     except:
       print()
+
+cap.release()
+        
