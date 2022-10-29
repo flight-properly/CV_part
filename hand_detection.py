@@ -1,6 +1,11 @@
+from threading import ThreadError
 import cv2
 import mediapipe as mp
-import time
+import time, socket, json
+
+# server IP, PORT
+HOST = '127.0.0.1'
+PORT = 1234
 
 #define
 mp_drawing = mp.solutions.drawing_utils
@@ -10,7 +15,7 @@ mp_hands = mp.solutions.hands
 cap = cv2.VideoCapture(0)
 
 swt=0
-throttle=1
+throttle=0
 init_width=0
 init_height_right=0
 init_height_left=0
@@ -78,13 +83,28 @@ with mp_hands.Hands(
         
         #throttle
         if (depth_avg<0.5 and depth_avg>-0.5 and right_4_y > right_9_y-100 and left_4_y > left_9_y-100):
-            throttle = 0
+            throttle = 1
         else:
-            throttle = 1 
+            throttle = 0
+
+
+
 
         #output
-        print(depth_avg, real_height,throttle)
+        header = []
+        header.append(0x20)
+
+        body = json.dumps({"pitch":depth_avg,"rollyaw":real_height,"throttle":throttle})
+        rst=bytearray(header)
+        rst+=bytearray((3).to_bytes(2, byteorder='big'))
+        rst+=bytes(body,'utf-8')
         
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((HOST, PORT))
+        client_socket.sendall(rst)
+        data = client_socket.recv(1024)
+        print(depth_avg, real_height,throttle)
         
     except:
       print()
+client_socket.close()
