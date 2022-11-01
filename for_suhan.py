@@ -1,6 +1,10 @@
 import cv2
 import mediapipe as mp
-import time
+import time, socket, json
+
+# server IP, PORT
+HOST = '127.0.0.1'
+PORT = 1234
 
 #define
 mp_drawing = mp.solutions.drawing_utils
@@ -84,6 +88,18 @@ with mp_hands.Hands(
 
         #output
         print(depth_avg, real_height,throttle)
+        header = []
+        header.append(0x20)
+
+        body = json.dumps({"pitch":depth_avg,"rollyaw":real_height,"throttle":throttle})
+        rst=bytearray(header)
+        rst+=bytearray((3).to_bytes(2, byteorder='big'))
+        rst+=bytes(body,'utf-8')
+        
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((HOST, PORT))
+        client_socket.sendall(rst)
+        data = client_socket.recv(1024)
         
         #display result
         if results.multi_hand_landmarks:
@@ -104,4 +120,5 @@ with mp_hands.Hands(
       print()
 
 cap.release()
-        
+client_socket.close()
+
