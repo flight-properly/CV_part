@@ -1,4 +1,3 @@
-from threading import ThreadError
 import cv2
 import mediapipe as mp
 import time, socket, json
@@ -86,9 +85,6 @@ with mp_hands.Hands(
             throttle = 1
         else:
             throttle = 0
-
-
-
 
         #output
         header = []
