@@ -1,10 +1,14 @@
+from threading import ThreadError
 import cv2
 import mediapipe as mp
-import time, socket, json
+import time, json
+import socket
 
 # server IP, PORT
 HOST = '127.0.0.1'
 PORT = 1234
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.connect((HOST, PORT))
 
 #define
 mp_drawing = mp.solutions.drawing_utils
@@ -21,9 +25,9 @@ init_height_left=0
 
 with mp_hands.Hands(
 
-    model_complexity=0,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.7) as hands:
+  model_complexity=0,
+  min_detection_confidence=0.7,
+  min_tracking_confidence=0.7) as hands:
 
   while cap.isOpened():
     success, image = cap.read()
@@ -32,7 +36,9 @@ with mp_hands.Hands(
       continue
 
     image.flags.writeable = True
+    
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # image = cv2.resize(image, (1920,1080))
     results = hands.process(image)
 
     image_height, image_width, _ = image.shape
@@ -40,7 +46,6 @@ with mp_hands.Hands(
     
     try:
       if len(results.multi_hand_landmarks)==2:
-
         #list import
         if results.multi_hand_landmarks[0].landmark[9].x * image_width < results.multi_hand_landmarks[1].landmark[9].x * image_width :
           right_hand=results.multi_hand_landmarks[0]
@@ -75,16 +80,18 @@ with mp_hands.Hands(
       
         #roll&yaw
         if (left_5_y-right_5_y > 20.0 or left_5_y-right_5_y < -20.0):
-          real_height = (left_5_y-right_5_y / 400 - 200) / -200
+          real_height = (left_5_y-right_5_y / 480 - 200) / -200
         else: real_height=0.0
+        if (real_height<1 and real_height>0) : real_height*=2.5
         if (real_height>1) : real_height=1.0
         elif (real_height<-1) : real_height=-1.0
         
         #throttle
-        if (depth_avg<0.5 and depth_avg>-0.5 and right_4_y > right_9_y-100 and left_4_y > left_9_y-100):
+        if (depth_avg<0.5 and depth_avg>-0.5 and right_4_y > right_9_y-120 and left_4_y > left_9_y-120):
             throttle = 1
         else:
             throttle = 0
+
 
         #output
         header = []
@@ -94,13 +101,11 @@ with mp_hands.Hands(
         rst=bytearray(header)
         rst+=bytearray((3).to_bytes(2, byteorder='big'))
         rst+=bytes(body,'utf-8')
-        
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((HOST, PORT))
-        client_socket.sendall(rst)
-        data = client_socket.recv(1024)
+
+        server_socket.sendall(rst)
+        data = server_socket.recv(1024)
         print(depth_avg, real_height,throttle)
-        
+
     except:
       print()
-client_socket.close()
+server_socket.close()
