@@ -6,9 +6,16 @@ import socket
 
 # server IP, PORT
 HOST = '127.0.0.1'
-PORT = 1234
+PORT = 12325
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.connect((HOST, PORT))
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server_socket.bind((HOST, PORT))
+print("Waiting for client to connect...")
+server_socket.listen()
+
+client_socket, addr = server_socket.accept()
+
+print("Connected from", addr)
 
 #define
 mp_drawing = mp.solutions.drawing_utils
@@ -92,20 +99,11 @@ with mp_hands.Hands(
         else:
             throttle = 0
 
-
-        #output
-        header = []
-        header.append(0x20)
-
         body = json.dumps({"pitch":depth_avg,"rollyaw":real_height,"throttle":throttle})
-        rst=bytearray(header)
-        rst+=bytearray((3).to_bytes(2, byteorder='big'))
-        rst+=bytes(body,'utf-8')
-
-        server_socket.sendall(rst)
-        data = server_socket.recv(1024)
-        print(depth_avg, real_height,throttle)
+        client_socket.sendall(body.encode())
+        print(body)
 
     except:
-      print()
+      print("")
+client_socket.close()
 server_socket.close()
