@@ -45,7 +45,7 @@ with mp_hands.Hands(
     image.flags.writeable = True
     
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # image = cv2.resize(image, (1920,1080))
+    image = cv2.resize(image, (640, 480))
     results = hands.process(image)
 
     image_height, image_width, _ = image.shape
@@ -87,7 +87,7 @@ with mp_hands.Hands(
       
         #roll&yaw
         if (left_5_y-right_5_y > 20.0 or left_5_y-right_5_y < -20.0):
-          real_height = (left_5_y-right_5_y / 480 - 200) / -200
+          real_height = (left_5_y-right_5_y / 400 - 200) / -200
         else: real_height=0.0
         if (real_height<1 and real_height>0) : real_height*=2.5
         if (real_height>1) : real_height=1.0
@@ -99,11 +99,11 @@ with mp_hands.Hands(
         else:
             throttle = 0
 
-        body = json.dumps({"pitch":depth_avg,"rollyaw":real_height,"throttle":throttle})
+        body = json.dumps({ "pitch": -depth_avg, "roll": real_height, "yaw": -real_height, "throttle": throttle })
         client_socket.sendall(body.encode())
-        print(body)
+        print(json.loads(body))
 
     except:
-      print("")
+      print()
 client_socket.close()
 server_socket.close()
