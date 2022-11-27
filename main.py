@@ -32,6 +32,7 @@ init_height_left = 0
 width = 640
 height = 360
 diff = width / 1920
+recognition_status = False
 
 with mp_hands.Hands(model_complexity=0, min_detection_confidence=0.7, min_tracking_confidence=0.7) as hands:
     while cap.isOpened():
@@ -50,6 +51,7 @@ with mp_hands.Hands(model_complexity=0, min_detection_confidence=0.7, min_tracki
 
         try:
             if len(results.multi_hand_landmarks) == 2:
+                recognition_status = True
                 # list import
                 if results.multi_hand_landmarks[0].landmark[9].x * image_width < results.multi_hand_landmarks[1].landmark[9].x * image_width:
                     right_hand = results.multi_hand_landmarks[0]
@@ -124,6 +126,7 @@ with mp_hands.Hands(model_complexity=0, min_detection_confidence=0.7, min_tracki
 
                 body = json.dumps(
                     {
+                        "status": recognition_status,
                         "pitch": depth_avg,
                         "roll": -real_height,
                         "yaw": real_height,
@@ -145,7 +148,9 @@ with mp_hands.Hands(model_complexity=0, min_detection_confidence=0.7, min_tracki
                 print(json.loads(body))
                 client_socket.sendall(body.encode())
         except:
-            print()
+            recognition_status = False
+            print("Unable to locate hands.")
+            client_socket.sendall(json.dumps({"status": recognition_status}).encode())
         cv2.imshow("MediaPipe Hands", cv2.flip(image, 1))
         if cv2.waitKey(5) & 0xFF == 27:
             break
