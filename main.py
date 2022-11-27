@@ -110,7 +110,7 @@ with mp_hands.Hands(model_complexity=0, min_detection_confidence=0.7, min_tracki
                 #throttle
                 throttle_left=((left_4_x-left_6_x)**2+(left_4_y-left_6_y)**2)**0.5
                 throttle_right=((right_4_x-right_6_x)**2+(right_4_y-right_6_y)**2)**0.5
-                if (depth_avg<0.5 and depth_avg>-0.5 and (init_throttle/throttle_right+init_throttle/throttle_right)/2 >1.5):
+                if (depth_avg<0.7 and depth_avg>0.3 and (init_throttle/throttle_right+init_throttle/throttle_right)/2 >1.5):
                     throttle = 1
                 else:
                     throttle = 0
