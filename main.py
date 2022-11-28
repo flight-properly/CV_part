@@ -28,9 +28,9 @@ init_width = 0
 init_height_right = 0
 init_height_left = 0
 
-# must respect the 16: 9 ratio
-width = 640
-height = 360
+# must respect the 16:9 ratio
+width = 960
+height = 540
 diff = width / 1920
 recognition_status = False
 
